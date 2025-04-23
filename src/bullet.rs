@@ -7,6 +7,7 @@ use bevy::{
 use crate::components::*;
 
 pub struct BulletPlugin;
+
 impl Plugin for BulletPlugin {
     fn build(&self, app: &mut App) {
         app
@@ -16,22 +17,24 @@ impl Plugin for BulletPlugin {
 }
 
 const BULLET_SPEED: f32 = 1200.;
+
 pub fn spawn_bullet_system(
-    player_transform: Query<&Transform, With<Player>>,
+    player_transform: &Transform,
     mut c: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>
 ) {
     let mesh_handle = meshes.add(Mesh::from(Circle::new(2.)));
     let material_handle = materials.add(Color::WHITE.into());
-    let player_transform = player_transform.single();
 
     c.spawn(MaterialMesh2dBundle {
         mesh: Mesh2dHandle(mesh_handle),
         material: material_handle,
         transform: *player_transform,
         ..default()
-    }).insert(Bullet).insert(Velocity::new(BULLET_SPEED, BULLET_SPEED));
+    })
+        .insert(Velocity::new(BULLET_SPEED, BULLET_SPEED))
+        .insert(Bullet);
 
 }
 
@@ -51,8 +54,12 @@ pub fn despawn_bullet_system(
     window: Query<&Window, With<PrimaryWindow>>
 ) {
     let window = window.single();
+
     let is_outside = |pos: Vec2| -> bool {
-        pos.x > window.width() / 2. || pos.x < -(window.width() / 2.) || pos.y > window.height() / 2. || pos.y < -(window.height() / 2.)
+        pos.x > window.width() / 2. ||
+        pos.x < -(window.width() / 2.) ||
+        pos.y > window.height() / 2. ||
+        pos.y < -(window.height() / 2.)
     };
 
     bullets.iter().for_each(|(bullet_entity, bullet_position)| {

@@ -37,13 +37,12 @@ pub fn init_player_system(
             ..default()
         },
     )
-        .insert(Player)
-        .insert(Velocity::default());
+        .insert(Velocity::default())
+        .insert(Player);
 }
 
-const ACCELERATION: f32 = 300.;
-const MAX_SPEED: f32 = 500.;
-const DRAG: f32 = 300.;
+const ACCELERATION: f32 = 450.;
+const MAX_SPEED: f32 = 600.;
 
 pub fn move_player_system(
     mut player_transform: Query<&mut Transform, With<Player>>,
@@ -54,16 +53,18 @@ pub fn move_player_system(
     let mut player_transform = player_transform.single_mut();
     let mut player_velocity = player_velocity.single_mut();
 
-    let forward_dir = player_transform.rotation * Vec3::Y;
+    let forward_dir = (player_transform.rotation * Vec3::Y).normalize();
 
-    if keyboard.pressed(KeyCode::W) && player_velocity.0.length() <= MAX_SPEED {
-        player_velocity.0 += ACCELERATION * time.delta_seconds();
-    } else {
-        player_velocity.0.x = (player_velocity.0.x - DRAG * time.delta_seconds()).max(0.);
-        player_velocity.0.y = (player_velocity.0.y - DRAG * time.delta_seconds()).max(0.);
+    if keyboard.pressed(KeyCode::W) {
+        let next_velocity = Vec2 {
+            x: player_velocity.0.x + forward_dir.x * ACCELERATION * time.delta_seconds(),
+            y: player_velocity.0.y + forward_dir.y * ACCELERATION * time.delta_seconds(),
+        };
+        if next_velocity.length() <= MAX_SPEED {
+            player_velocity.0 = next_velocity;
+        }
     }
-
-    player_transform.translation += forward_dir * player_velocity.0.extend(0.) * time.delta_seconds();
+    player_transform.translation += player_velocity.0.extend(0.) * time.delta_seconds();
 }
 
 pub fn rotate_player_system(
@@ -123,6 +124,7 @@ pub fn shoot_bullet_system(
     materials: ResMut<Assets<ColorMaterial>>,
     keyboard: Res<Input<KeyCode>>,
 ) {
+    let player_transform = player_transform.single();
     if keyboard.just_pressed(KeyCode::Space) {
         crate::bullet::spawn_bullet_system(player_transform, c, meshes, materials);
     }
