@@ -1,10 +1,12 @@
 use bevy::{
     prelude::*,
     render::mesh::shape::Circle,
-    sprite::{MaterialMesh2dBundle, Mesh2dHandle}, window::PrimaryWindow,
+    sprite::{MaterialMesh2dBundle, Mesh2dHandle},
 };
 
-use crate::components::*;
+use crate::{components::*, GameWindow};
+
+const BULLET_SPEED: f32 = 1200.;
 
 pub struct BulletPlugin;
 
@@ -16,7 +18,6 @@ impl Plugin for BulletPlugin {
     }
 }
 
-const BULLET_SPEED: f32 = 1200.;
 
 pub fn spawn_bullet_system(
     player_transform: &Transform,
@@ -51,15 +52,14 @@ pub fn move_bullets_system(
 pub fn despawn_bullet_system(
     mut c: Commands,
     bullets: Query<(Entity, &Transform), With<Bullet>>,
-    window: Query<&Window, With<PrimaryWindow>>
+    window: Res<GameWindow>
 ) {
-    let window = window.single();
 
     let is_outside = |pos: Vec2| -> bool {
-        pos.x > window.width() / 2. ||
-        pos.x < -(window.width() / 2.) ||
-        pos.y > window.height() / 2. ||
-        pos.y < -(window.height() / 2.)
+        pos.x > window.0.x / 2. ||
+        pos.x < -(window.0.x / 2.) ||
+        pos.y > window.0.y / 2. ||
+        pos.y < -(window.0.y / 2.)
     };
 
     bullets.iter().for_each(|(bullet_entity, bullet_position)| {

@@ -5,7 +5,10 @@ use bevy::{
     window::PrimaryWindow,
 };
 
+use std::f32::consts::PI;
+use crate::{components::*, GameWindow};
 pub struct PlayerPlugin;
+
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app
@@ -17,8 +20,9 @@ impl Plugin for PlayerPlugin {
     }
 }
 
-use std::f32::consts::PI;
-use crate::components::*;
+const ACCELERATION: f32 = 450.;
+const MAX_SPEED: f32 = 600.;
+const DRAG: f32 = 300.;
 
 pub fn init_player_system(
     mut c: Commands,
@@ -41,8 +45,6 @@ pub fn init_player_system(
         .insert(Player);
 }
 
-const ACCELERATION: f32 = 450.;
-const MAX_SPEED: f32 = 600.;
 
 pub fn move_player_system(
     mut player_transform: Query<&mut Transform, With<Player>>,
@@ -55,6 +57,7 @@ pub fn move_player_system(
 
     let forward_dir = (player_transform.rotation * Vec3::Y).normalize();
 
+
     if keyboard.pressed(KeyCode::W) {
         let next_velocity = Vec2 {
             x: player_velocity.0.x + forward_dir.x * ACCELERATION * time.delta_seconds(),
@@ -63,7 +66,10 @@ pub fn move_player_system(
         if next_velocity.length() <= MAX_SPEED {
             player_velocity.0 = next_velocity;
         }
+    }else if player_velocity.0.length().abs() > 0. {
+        player_velocity.0 = player_velocity.0 - player_velocity.0.normalize() * DRAG * time.delta_seconds();
     }
+
     player_transform.translation += player_velocity.0.extend(0.) * time.delta_seconds();
 }
 
@@ -94,25 +100,24 @@ pub fn rotate_player_system(
 
 pub fn wrap_player_system(
     mut player_transform: Query<&mut Transform, With<Player>>,
-    window: Query<&Window, With<PrimaryWindow>>
+    window: Res<GameWindow>
 ) {
     let mut player_transform = player_transform.single_mut();
-    let window = window.single();
 
-    if player_transform.translation.x > window.width() / 2. {
-        player_transform.translation.x -= window.width();
+    if player_transform.translation.x > window.0.x / 2. {
+        player_transform.translation.x -= window.0.x;
     }
 
-    if player_transform.translation.x < -(window.width() / 2.) {
-        player_transform.translation.x += window.width();
+    if player_transform.translation.x < -(window.0.x / 2.) {
+        player_transform.translation.x += window.0.x;
     }
 
-    if player_transform.translation.y > window.height() / 2. {
-        player_transform.translation.y -= window.height();
+    if player_transform.translation.y > window.0.y / 2. {
+        player_transform.translation.y -= window.0.y;
     }
 
-    if player_transform.translation.y < -(window.height() / 2.) {
-        player_transform.translation.y += window.height();
+    if player_transform.translation.y < -(window.0.y / 2.) {
+        player_transform.translation.y += window.0.y;
     }
 
 }

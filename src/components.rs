@@ -6,8 +6,12 @@ pub struct Player;
 #[derive(Component)]
 pub struct Bullet;
 
+#[derive(Component)]
+pub struct Asteroid;
+
 #[derive(Component, Default)]
 pub struct Velocity(pub Vec2);
+
 
 impl Velocity {
     pub fn new(x: f32, y: f32) -> Velocity {
