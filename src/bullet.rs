@@ -1,7 +1,6 @@
 use bevy::{
-    prelude::*,
-    render::mesh::shape::Circle,
-    sprite::{MaterialMesh2dBundle, Mesh2dHandle},
+    color::palettes::css::WHITE, 
+    prelude::*
 };
 
 use crate::{components::*, GameWindow};
@@ -26,14 +25,11 @@ pub fn spawn_bullet_system(
     mut materials: ResMut<Assets<ColorMaterial>>
 ) {
     let mesh_handle = meshes.add(Mesh::from(Circle::new(2.)));
-    let material_handle = materials.add(Color::WHITE.into());
+    let material_handle = materials.add(ColorMaterial::from_color(WHITE));
 
-    c.spawn(MaterialMesh2dBundle {
-        mesh: Mesh2dHandle(mesh_handle),
-        material: material_handle,
-        transform: *player_transform,
-        ..default()
-    })
+    c.spawn(Mesh2d(mesh_handle))
+        .insert(MeshMaterial2d(material_handle))
+        .insert(Transform::from(*player_transform))
         .insert(Velocity::new(BULLET_SPEED, BULLET_SPEED))
         .insert(Bullet);
 
@@ -45,7 +41,7 @@ pub fn move_bullets_system(
 ) {
     bullets.iter_mut().for_each(|(mut transform, velocity)| {
         let forward_dir = transform.rotation * Vec3::Y;
-        transform.translation += forward_dir * velocity.0.extend(0.) * time.delta_seconds();
+        transform.translation += forward_dir * velocity.0.extend(0.) * time.delta_secs();
     });
 }
 
