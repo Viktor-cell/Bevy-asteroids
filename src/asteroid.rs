@@ -1,10 +1,12 @@
 use bevy::{
     color::palettes::css::WHITE, prelude::*
 };
+use rand::Rng;
+use std::f32::consts::PI;
 
-use crate::{components::*, GameWindow};
+use crate::{components::*, GameWindow, Random};
 
-const MAX_NUMBER: usize = 1;
+const MAX_NUMBER: usize = 20;
 const SPAWN_COOLDOWN: f32 = 2.;
 
 #[derive(Resource)]
@@ -37,17 +39,42 @@ pub fn spawn_asteroid(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
     mut asteroids_info: ResMut<AsteroidsInfo>,
+    window: Res<GameWindow>,
+    mut rnd: ResMut<Random>
 ) {
     if asteroids_info.count >= MAX_NUMBER {
         return;
     }
+
     let asteroid = meshes.add(Mesh::from(RegularPolygon::new(25., 7)));
     let material_bundle = materials.add(ColorMaterial::from_color(WHITE));
 
+    let mut spawn_pos = || -> Vec2 {
+        let half_window_height = window.0.y / 2.;
+        let half_window_width = window.0.x / 2.;
+        let padding = 0.;
+
+        match rnd.0.random_range(0..4) {
+            0 => Vec2::new(-padding - half_window_width , rnd.0.random_range(-half_window_height..half_window_height)),
+            1 => Vec2::new(padding + half_window_width, rnd.0.random_range(-half_window_height..half_window_height)),
+            2 => Vec2::new( rnd.0.random_range(-half_window_width..half_window_width), -padding - half_window_height),
+            3 => Vec2::new( rnd.0.random_range(-half_window_width..half_window_width), padding + half_window_height),
+            _ => unreachable!()
+        }
+    };
+
+    let transforn = Transform {
+        translation: spawn_pos().extend(0.),
+        rotation: Quat::from_rotation_z(rnd.0.random_range(-PI..PI)),
+        scale: Vec2::splat(rnd.0.random_range(0.5..1.5)).extend(0.)
+    };
+
+    let velocity = Velocity::new(rnd.0.random_range(-150.0..150.0), rnd.0.random_range(-150.0..150.0));
+
     c.spawn(Mesh2d(asteroid))
         .insert(MeshMaterial2d(material_bundle))
-        .insert(Transform::default())
-        .insert(Velocity::new(150., 150.))
+        .insert(transforn)
+        .insert(velocity)
         .insert(Asteroid);
     asteroids_info.count += 1;
 }
@@ -74,21 +101,23 @@ pub fn wrap_asteroids_system(
     window: Res<GameWindow>,
     mut asteroids_transform: Query<&mut Transform, With<Asteroid>>
 ) {
-    asteroids_transform.iter_mut().for_each(|mut asteroid_transform| {
+    let half_window_height = window.0.y / 2.;
+    let half_window_width = window.0.x / 2.;
 
-        if asteroid_transform.translation.x > window.0.x / 2. {
+    asteroids_transform.iter_mut().for_each(|mut asteroid_transform| {
+        if asteroid_transform.translation.x > half_window_width {
             asteroid_transform.translation.x -= window.0.x;
         }
 
-        if asteroid_transform.translation.x < -(window.0.x / 2.) {
+        if asteroid_transform.translation.x < -half_window_width {
             asteroid_transform.translation.x += window.0.x;
         }
 
-        if asteroid_transform.translation.y > window.0.y / 2. {
+        if asteroid_transform.translation.y > half_window_height {
             asteroid_transform.translation.y -= window.0.y;
         }
 
-        if asteroid_transform.translation.y < -(window.0.y / 2.) {
+        if asteroid_transform.translation.y < -half_window_height {
             asteroid_transform.translation.y += window.0.y;
         }
     });

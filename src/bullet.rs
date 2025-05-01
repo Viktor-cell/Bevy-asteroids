@@ -19,7 +19,7 @@ impl Plugin for BulletPlugin {
 
 
 pub fn spawn_bullet_system(
-    player_transform: &Transform,
+    player_transform: Single<&Transform, With<Player>>,
     mut c: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>
@@ -29,10 +29,13 @@ pub fn spawn_bullet_system(
 
     c.spawn(Mesh2d(mesh_handle))
         .insert(MeshMaterial2d(material_handle))
-        .insert(Transform::from(*player_transform))
+        .insert(Transform {
+            translation: player_transform.translation,
+            rotation: player_transform.rotation,
+            ..default()
+        })
         .insert(Velocity::new(BULLET_SPEED, BULLET_SPEED))
         .insert(Bullet);
-
 }
 
 pub fn move_bullets_system(
@@ -50,12 +53,14 @@ pub fn despawn_bullet_system(
     bullets: Query<(Entity, &Transform), With<Bullet>>,
     window: Res<GameWindow>
 ) {
+    let half_window_height = window.0.y / 2.;
+    let half_window_width = window.0.x / 2.;
 
     let is_outside = |pos: Vec2| -> bool {
-        pos.x > window.0.x / 2. ||
-        pos.x < -(window.0.x / 2.) ||
-        pos.y > window.0.y / 2. ||
-        pos.y < -(window.0.y / 2.)
+        pos.x > half_window_width ||
+        pos.x < -(half_window_width) ||
+        pos.y > half_window_height ||
+        pos.y < -(half_window_height)
     };
 
     bullets.iter().for_each(|(bullet_entity, bullet_position)| {

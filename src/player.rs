@@ -3,7 +3,7 @@ use bevy::{
 };
 
 use std::f32::consts::PI;
-use crate::{components::*, GameWindow};
+use crate::{bullet::spawn_bullet_system, components::*, GameWindow};
 pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
@@ -13,7 +13,7 @@ impl Plugin for PlayerPlugin {
         .add_systems(Update, move_player_system)
         .add_systems(Update, rotate_player_system)
         .add_systems(Update, wrap_player_system)
-        .add_systems(Update, shoot_bullet_system);
+        .add_systems(Update, spawn_bullet_system.run_if(shoot_bullet_system));
     }
 }
 
@@ -26,7 +26,7 @@ pub fn init_player_system(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
-    c.spawn(Camera2d::default());
+    c.spawn(Camera2d);
 
     let mesh_handle = meshes.add(Mesh::from(RegularPolygon::new(10., 3)));
     let material_handle = materials.add(ColorMaterial::from_color(WHITE));
@@ -40,14 +40,11 @@ pub fn init_player_system(
 
 
 pub fn move_player_system(
-    mut player_transform: Query<&mut Transform, With<Player>>,
-    mut player_velocity: Query<&mut Velocity, With<Player>>,
+    mut player_transform: Single<&mut Transform, With<Player>>,
+    mut player_velocity: Single<&mut Velocity, With<Player>>,
     keyboard: Res<ButtonInput<KeyCode>>,
     time: Res<Time>,
 ) -> Result {
-    let mut player_transform = player_transform.single_mut()?;
-    let mut player_velocity = player_velocity.single_mut()?;
-
     let forward_dir = (player_transform.rotation * Vec3::Y).normalize();
 
 
@@ -69,11 +66,9 @@ pub fn move_player_system(
 }
 
 pub fn rotate_player_system(
-    mut player_transform: Query<&mut Transform, With<Player>>,
-    window: Query<&Window, With<PrimaryWindow>>,
+    mut player_transform: Single<&mut Transform, With<Player>>,
+    window: Single<&Window, With<PrimaryWindow>>,
 ) -> Result {
-    let window = window.single()?;
-    let mut player_transform = player_transform.single_mut()?;
 
     if let Some(cursor_pos) = window.cursor_position() {
 
@@ -96,24 +91,25 @@ pub fn rotate_player_system(
 }
 
 pub fn wrap_player_system(
-    mut player_transform: Query<&mut Transform, With<Player>>,
+    mut player_transform: Single<&mut Transform, With<Player>>,
     window: Res<GameWindow>
 ) -> Result {
-    let mut player_transform = player_transform.single_mut()?;
+    let half_window_height = window.0.y / 2.;
+    let half_window_width = window.0.x / 2.;
 
-    if player_transform.translation.x > window.0.x / 2. {
+    if player_transform.translation.x > half_window_width {
         player_transform.translation.x -= window.0.x;
     }
 
-    if player_transform.translation.x < -(window.0.x / 2.) {
+    if player_transform.translation.x < -half_window_width {
         player_transform.translation.x += window.0.x;
     }
 
-    if player_transform.translation.y > window.0.y / 2. {
+    if player_transform.translation.y > half_window_height {
         player_transform.translation.y -= window.0.y;
     }
 
-    if player_transform.translation.y < -(window.0.y / 2.) {
+    if player_transform.translation.y < -half_window_height {
         player_transform.translation.y += window.0.y;
     }
     
@@ -121,16 +117,7 @@ pub fn wrap_player_system(
 }
 
 pub fn shoot_bullet_system(
-    player_transform: Query<&Transform, With<Player>>,
-    c: Commands,
-    meshes: ResMut<Assets<Mesh>>,
-    materials: ResMut<Assets<ColorMaterial>>,
     keyboard: Res<ButtonInput<KeyCode>>,
-) -> Result {
-    let player_transform = player_transform.single()?;
-    if keyboard.just_pressed(KeyCode::Space) {
-        crate::bullet::spawn_bullet_system(player_transform, c, meshes, materials);
-    }
-
-    Ok(())
+) -> bool {
+    keyboard.just_pressed(KeyCode::Space)
 }
