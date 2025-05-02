@@ -1,9 +1,16 @@
 use bevy::{
-    color::palettes::css::WHITE, prelude::*, window::PrimaryWindow
+    color::palettes::css::WHITE,
+    prelude::*,
+    window::PrimaryWindow
 };
 
 use std::f32::consts::PI;
-use crate::{bullet::spawn_bullet_system, components::*, GameWindow};
+use crate::{
+    bullet::spawn_bullet_system,
+    components::*,
+    GameWindow
+};
+
 pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
@@ -17,7 +24,7 @@ impl Plugin for PlayerPlugin {
     }
 }
 
-const ACCELERATION: f32 = 450.;
+const ACCELERATION: f32 = 200.;
 const MAX_SPEED: f32 = 600.;
 const DRAG: f32 = 300.;
 
@@ -26,15 +33,15 @@ pub fn init_player_system(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
-    c.spawn(Camera2d);
-
-    let mesh_handle = meshes.add(Mesh::from(RegularPolygon::new(10., 3)));
+    let collider = Collider {radius: 10.};
+    let mesh_handle = meshes.add(Mesh::from(RegularPolygon::new(collider.radius, 3)));
     let material_handle = materials.add(ColorMaterial::from_color(WHITE));
 
     c.spawn(Mesh2d(mesh_handle))
         .insert(MeshMaterial2d(material_handle))
         .insert(Transform::default())
         .insert(Velocity::default())
+        .insert(collider)
         .insert(Player);
 }
 

@@ -5,7 +5,8 @@ use bevy::{
 
 use crate::{components::*, GameWindow};
 
-const BULLET_SPEED: f32 = 1200.;
+const BULLET_SPEED: f32 = 800.;
+const COLLIDER_PADDING: f32 = 3.;
 
 pub struct BulletPlugin;
 
@@ -24,7 +25,8 @@ pub fn spawn_bullet_system(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>
 ) {
-    let mesh_handle = meshes.add(Mesh::from(Circle::new(2.)));
+    let collider = Collider{radius: (2. + COLLIDER_PADDING)};
+    let mesh_handle = meshes.add(Mesh::from(Circle::new(collider.radius - COLLIDER_PADDING)));
     let material_handle = materials.add(ColorMaterial::from_color(WHITE));
 
     c.spawn(Mesh2d(mesh_handle))
@@ -35,6 +37,7 @@ pub fn spawn_bullet_system(
             ..default()
         })
         .insert(Velocity::new(BULLET_SPEED, BULLET_SPEED))
+        .insert(collider)
         .insert(Bullet);
 }
 
