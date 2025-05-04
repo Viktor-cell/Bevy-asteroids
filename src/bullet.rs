@@ -3,7 +3,7 @@ use bevy::{
     prelude::*
 };
 
-use crate::{components::*, GameWindow};
+use crate::{components::*, GameState, GameWindow};
 
 const BULLET_SPEED: f32 = 800.;
 const COLLIDER_PADDING: f32 = 3.;
@@ -13,8 +13,10 @@ pub struct BulletPlugin;
 impl Plugin for BulletPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_systems(Update, move_bullets_system)
-            .add_systems(Update, despawn_bullet_system);
+            .add_systems(Update, (
+                move_bullets_system,
+                despawn_bullet_system
+            ).run_if(in_state(GameState::Playing).or(in_state(GameState::End))));
     }
 }
 

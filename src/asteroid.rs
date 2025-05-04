@@ -6,7 +6,7 @@ use bevy::{
 use rand::Rng;
 use std::f32::consts::PI;
 
-use crate::{components::*, labels::*, GameWindow, Random};
+use crate::{components::*, labels::*, GameState, GameWindow, Random};
 
 const MAX_NUMBER: usize = 8;
 const SPAWN_COOLDOWN: f32 = 2.;
@@ -32,9 +32,11 @@ pub struct  AsteroidsPlugin;
 impl Plugin for AsteroidsPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_systems(Update, (spawn_asteroid, spawn_labels_on_asteroids_system).chain().run_if(asteroid_should_spawn))
-            .add_systems(Update, (move_asteroids_system, update_labels_on_asteroid_system).chain())
-            .add_systems(Update, wrap_asteroids_system);
+            .add_systems(Update, (
+                (spawn_asteroid, spawn_labels_on_asteroids_system).chain().run_if(asteroid_should_spawn),
+                (move_asteroids_system, update_labels_on_asteroid_system).chain(),
+                wrap_asteroids_system
+            ).run_if(in_state(GameState::Playing).or(in_state(GameState::End))));
     }
 }
 
@@ -54,7 +56,8 @@ pub fn spawn_asteroid(
         radius: rnd.0.random_range((25. + COLLIDER_PADDING)..(55. + COLLIDER_PADDING))
     };
 
-    let asteroid = meshes.add(Mesh::from(RegularPolygon::new(collider.radius - COLLIDER_PADDING, 7)));
+    let sides = rnd.0.random_range(6..12);
+    let asteroid = meshes.add(Mesh::from(RegularPolygon::new(collider.radius - COLLIDER_PADDING, sides)));
     let material_bundle = materials.add(ColorMaterial::from_color(WHITE));
     let half_window_height = window.0.y / 2.;
     let half_window_width = window.0.x / 2.;

@@ -15,6 +15,7 @@ use crate::{
 const FONT_SIZE: f32 = 20.;
 const SHIFT_LEFT: f32 = 6.2;
 const SHIFT_BOT: f32 = 10.;
+
 pub fn spawn_labels_on_asteroids_system(
     mut c: Commands,
     asteroid: Query<(Entity, &Transform, &Health), With<Asteroid>>,

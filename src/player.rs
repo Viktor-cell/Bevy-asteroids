@@ -1,14 +1,10 @@
 use bevy::{
-    color::palettes::css::WHITE,
-    prelude::*,
-    window::PrimaryWindow
+    color::palettes::css::WHITE, input::mouse::MouseButtonInput, prelude::*, window::PrimaryWindow
 };
 
 use std::f32::consts::PI;
 use crate::{
-    bullet::spawn_bullet_system,
-    components::*,
-    GameWindow
+    bullet::spawn_bullet_system, components::*, GameState, GameWindow
 };
 
 pub struct PlayerPlugin;
@@ -16,17 +12,22 @@ pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app
-        .add_systems(Startup, init_player_system)
-        .add_systems(Update, move_player_system)
-        .add_systems(Update, rotate_player_system)
-        .add_systems(Update, wrap_player_system)
-        .add_systems(Update, spawn_bullet_system.run_if(shoot_bullet_system));
+        .add_systems(OnEnter(GameState::Playing), init_player_system)
+        //.add_systems(Update, move_player_system
+        //.add_systems(Update, rotate_player_system
+        //.add_systems(Update, wrap_player_system
+        //.add_systems(Update, spawn_bullet_system.run_if(shoot_bullet_system))
+        .add_systems(Update, (
+            move_player_system,
+            rotate_player_system,
+            wrap_player_system,
+            spawn_bullet_system.run_if(shoot_bullet_system)
+        ).run_if(in_state(GameState::Playing)));
     }
 }
 
 const ACCELERATION: f32 = 200.;
 const MAX_SPEED: f32 = 600.;
-const DRAG: f32 = 300.;
 
 pub fn init_player_system(
     mut c: Commands,
@@ -49,22 +50,16 @@ pub fn init_player_system(
 pub fn move_player_system(
     mut player_transform: Single<&mut Transform, With<Player>>,
     mut player_velocity: Single<&mut Velocity, With<Player>>,
-    keyboard: Res<ButtonInput<KeyCode>>,
     time: Res<Time>,
 ) -> Result {
     let forward_dir = (player_transform.rotation * Vec3::Y).normalize();
 
-
-    if keyboard.pressed(KeyCode::KeyW) {
-        let next_velocity = Vec2 {
-            x: player_velocity.0.x + forward_dir.x * ACCELERATION * time.delta_secs(),
-            y: player_velocity.0.y + forward_dir.y * ACCELERATION * time.delta_secs(),
-        };
-        if next_velocity.length() <= MAX_SPEED {
-            player_velocity.0 = next_velocity;
-        }
-    }else if player_velocity.0.length().abs() > 0. {
-        player_velocity.0 = player_velocity.0 - player_velocity.0.normalize() * DRAG * time.delta_secs();
+    let next_velocity = Vec2 {
+        x: player_velocity.0.x + forward_dir.x * ACCELERATION * time.delta_secs(),
+        y: player_velocity.0.y + forward_dir.y * ACCELERATION * time.delta_secs(),
+    };
+    if next_velocity.length() <= MAX_SPEED {
+        player_velocity.0 = next_velocity;
     }
 
     player_transform.translation += player_velocity.0.extend(0.) * time.delta_secs();
@@ -125,6 +120,7 @@ pub fn wrap_player_system(
 
 pub fn shoot_bullet_system(
     keyboard: Res<ButtonInput<KeyCode>>,
+    mouse: Res<ButtonInput<MouseButton>>
 ) -> bool {
-    keyboard.just_pressed(KeyCode::Space)
+    keyboard.just_pressed(KeyCode::Space) || mouse.just_pressed(MouseButton::Left)
 }
